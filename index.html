@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restoration Estimate Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .chat-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 600px;
+            height: 80vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .chat-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+        }
+        
+        .chat-header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .chat-header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .session-id {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            font-size: 12px;
+            opacity: 0.7;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f7f9fc;
+        }
+        
+        .message {
+            margin-bottom: 15px;
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .message.user {
+            text-align: right;
+        }
+        
+        .message.assistant {
+            text-align: left;
+        }
+        
+        .message-content {
+            display: inline-block;
+            padding: 12px 18px;
+            border-radius: 18px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+        
+        .user .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .assistant .message-content {
+            background: white;
+            color: #333;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .chat-input {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        #messageInput {
+            flex: 1;
+            padding: 12px 18px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        #messageInput:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+        
+        .btn-send {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-send:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-send:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .file-upload {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .file-upload input[type="file"] {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+        
+        .btn-upload {
+            background: #48bb78;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-upload:hover {
+            background: #38a169;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .error-message {
+            background: #fed7d7;
+            color: #c53030;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        
+        .success-message {
+            background: #c6f6d5;
+            color: #2f855a;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        
+        pre {
+            background: #f7fafc;
+            padding: 10px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h1>Restoration Estimate Assistant</h1>
+            <p>Upload your estimate Excel file and ask questions about it</p>
+            <div class="session-id" id="sessionId"></div>
+        </div>
+        
+        <div class="chat-messages" id="chatMessages">
+            <div class="message assistant">
+                <div class="message-content">
+                    Welcome! Please upload your restoration estimate Excel file to get started. 
+                    Then you can ask questions like:
+                    <ul style="margin-top: 10px; margin-left: 20px;">
+                        <li>How many square feet of drywall are in this estimate?</li>
+                        <li>What's the total cost for kitchen items?</li>
+                        <li>Show me all items that need to be removed and replaced</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="chat-input">
+            <div class="input-group">
+                <input 
+                    type="text" 
+                    id="messageInput" 
+                    placeholder="Ask a question about your estimate..."
+                    disabled
+                >
+                <button class="btn btn-send" id="sendBtn" disabled>Send</button>
+            </div>
+            <div class="file-upload">
+                <input type="file" id="fileInput" accept=".xlsx,.xls">
+                <button class="btn btn-upload">
+                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M16.88 9.1A4 4 0 0 1 16 17H5a5 5 0 0 1-1-9.9V7a3 3 0 0 1 4.52-2.59A4.98 4.98 0 0 1 17 8c0 .38-.04.74-.12 1.1zM11 11h3l-4-4-4 4h3v3h2v-3z"/>
+                    </svg>
+                    Upload Excel File
+                </button>
+            </div>
+            <div id="statusMessage"></div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration - Your n8n webhook URLs
+        const UPLOAD_WEBHOOK_URL = 'http://localhost:5678/webhook/27e8d118-d4ca-463a-8313-508b26c02544'; // Process PDF webhook
+        const QUESTION_WEBHOOK_URL = 'http://localhost:5678/webhook/89ae8f61-0163-46a8-b965-3afc9a0fe5c8'; // Query estimate AI webhook
+        
+        // Generate session ID
+        const sessionId = 'session_' + Math.random().toString(36).substring(2, 15);
+        document.getElementById('sessionId').textContent = 'Session: ' + sessionId;
+        
+        // Elements
+        const chatMessages = document.getElementById('chatMessages');
+        const messageInput = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const fileInput = document.getElementById('fileInput');
+        const statusMessage = document.getElementById('statusMessage');
+        
+        let fileUploaded = false;
+        
+        // Store estimate data
+        window.estimateData = {
+            supabaseId: null,
+            sessionId: sessionId
+        };
+        
+        // Add message to chat
+        function addMessage(content, isUser = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user' : 'assistant'}`;
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            
+            // Check if content contains formatting
+            if (content.includes('\n') && !isUser) {
+                contentDiv.innerHTML = content.replace(/\n/g, '<br>');
+            } else {
+                contentDiv.textContent = content;
+            }
+            
+            messageDiv.appendChild(contentDiv);
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        // Show status message
+        function showStatus(message, type = 'info') {
+            statusMessage.className = type === 'error' ? 'error-message' : 'success-message';
+            statusMessage.textContent = message;
+            setTimeout(() => {
+                statusMessage.textContent = '';
+                statusMessage.className = '';
+            }, 5000);
+        }
+        
+        // File upload handler - uses UPLOAD webhook
+        fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
+                showStatus('Please upload an Excel file (.xlsx or .xls)', 'error');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('type', 'file_upload');
+            formData.append('sessionId', sessionId);
+            
+            // Show uploading message
+            addMessage(`Uploading ${file.name}...`, true);
+            
+            try {
+                // Use UPLOAD webhook for file uploads
+                const response = await fetch(UPLOAD_WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: {
+                        'X-Session-ID': sessionId
+                    },
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && !result.error) {
+                    fileUploaded = true;
+                    messageInput.disabled = false;
+                    sendBtn.disabled = false;
+                    
+                    // Store the Supabase ID if returned
+                    if (result.supabaseId) {
+                        window.estimateData.supabaseId = result.supabaseId;
+                    }
+                    
+                    const summary = result.metadata;
+                    let message = `✅ File uploaded successfully!\n\n`;
+                    message += `📊 Estimate Summary:\n`;
+                    message += `• Total items: ${summary.totalItems}\n`;
+                    message += `• Total drywall: ${summary.totalDrywallSF.toFixed(2)} SF\n\n`;
+                    message += `📁 Categories found:\n`;
+                    
+                    Object.entries(summary.groupTotals).forEach(([code, data]) => {
+                        message += `• ${data.description}: ${data.itemCount} items, $${data.totalRCV.toFixed(2)} RCV\n`;
+                    });
+                    
+                    message += `\nYou can now ask questions about your estimate!`;
+                    
+                    addMessage(message);
+                    showStatus('File processed successfully! You can now ask questions.', 'success');
+                } else {
+                    throw new Error(result.message || 'Upload failed');
+                }
+            } catch (error) {
+                addMessage(`❌ Error: ${error.message}. Please try again.`);
+                showStatus(error.message, 'error');
+            }
+        });
+        
+        // Send message handler - uses QUESTION webhook
+        async function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message || !fileUploaded) return;
+            
+            addMessage(message, true);
+            messageInput.value = '';
+            sendBtn.disabled = true;
+            
+            // Show typing indicator
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'message assistant';
+            typingDiv.innerHTML = '<div class="message-content"><div class="loading"></div></div>';
+            chatMessages.appendChild(typingDiv);
+            
+            try {
+                // Use QUESTION webhook for questions
+                const response = await fetch(QUESTION_WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Session-ID': sessionId
+                    },
+                    body: JSON.stringify({
+                        type: 'question',
+                        message: message,
+                        sessionId: sessionId,
+                        supabaseId: window.estimateData?.supabaseId // Include Supabase reference if available
+                    })
+                });
+                
+                const result = await response.json();
+                
+                // Remove typing indicator
+                typingDiv.remove();
+                
+                if (response.ok && !result.error) {
+                    addMessage(result.response);
+                } else {
+                    throw new Error(result.message || 'Failed to get response');
+                }
+            } catch (error) {
+                typingDiv.remove();
+                addMessage(`❌ Error: ${error.message}. Please try again.`);
+            } finally {
+                sendBtn.disabled = false;
+            }
+        }
+        
+        // Event listeners
+        sendBtn.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>
