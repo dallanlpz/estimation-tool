@@ -240,8 +240,9 @@
         <div class="chat-messages" id="chatMessages">
             <div class="message assistant">
                 <div class="message-content">
-                    Welcome! Please upload your restoration estimate Excel file to get started. 
-                    Then you can ask questions like:
+                    Welcome! You can upload your restoration estimate Excel file and ask questions about it.
+                    <br><br>
+                    Example questions:
                     <ul style="margin-top: 10px; margin-left: 20px;">
                         <li>How many square feet of drywall are in this estimate?</li>
                         <li>What's the total cost for kitchen items?</li>
@@ -256,10 +257,9 @@
                 <input 
                     type="text" 
                     id="messageInput" 
-                    placeholder="Ask a question about your estimate..."
-                    disabled
+                    placeholder="Type your message here..."
                 >
-                <button class="btn btn-send" id="sendBtn" disabled>Send</button>
+                <button class="btn btn-send" id="sendBtn">Send</button>
             </div>
             <div class="file-upload">
                 <input type="file" id="fileInput" accept=".xlsx,.xls">
@@ -360,8 +360,6 @@
                 
                 if (response.ok && !result.error) {
                     fileUploaded = true;
-                    messageInput.disabled = false;
-                    sendBtn.disabled = false;
                     
                     // Store the Supabase ID if returned
                     if (result.supabaseId) {
@@ -395,7 +393,7 @@
         // Send message handler - uses QUESTION webhook
         async function sendMessage() {
             const message = messageInput.value.trim();
-            if (!message || !fileUploaded) return;
+            if (!message) return;
             
             addMessage(message, true);
             messageInput.value = '';
